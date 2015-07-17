@@ -19,6 +19,8 @@ function tryConfig(hasConfigCb) {
         promptConfig();
     }
 
+    console.log(config);
+
     hasConfigCb();
 }
 
