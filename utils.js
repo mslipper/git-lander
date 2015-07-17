@@ -5,8 +5,8 @@ module.exports = {
     log: log,
     err: err,
 
-    getHomeDir: function() {
-        return process.env.HOME || process.env.USERPROFILE;
+    getConfigDir: function() {
+        return process.cwd();
     },
 
     exitLog: function(message, code) {

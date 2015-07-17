@@ -1,13 +1,25 @@
-var prompt = require('prompt'),
+var program = require('commander'),
+    prompt = require('prompt'),
+    Github = require('github-api'),
     utils = require('./utils'),
     config;
 
-function tryConfig() {
+program
+    .option('-f', '--force', 'Whether or not to force push to the remote branch before rebasing')
+    .parse(process.argv);
+
+if (!program.args.length) {
+    utils.exitLog('A pull request ID is required.', 1);
+}
+
+function tryConfig(hasConfigCb) {
     try {
-        config = require(utils.getHomeDir() + '/.git-lander-config.json');
+        config = require(utils.getConfigDir() + '/.git-lander-config.json');
     } catch(e) {
         promptConfig();
     }
+
+    hasConfigCb();
 }
 
 function promptConfig() {
@@ -34,4 +46,21 @@ function didPromptConfig(err, res) {
     }
 }
 
-tryConfig();
+function getGithubData() {
+    var github = new Github({
+        token: config.token,
+        auth: 'oauth'
+    });
+
+    var user = github.getUser(),
+        repo = github.getRepo(user, config.repoName),
+        id = program.args[0];
+
+    repo.getPull(id, didGetPullRequest)
+}
+
+function didGetPullRequest(err, res) {
+    console.log(err, res);
+}
+
+tryConfig(getGithubData());
