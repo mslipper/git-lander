@@ -23,5 +23,11 @@ module.exports = {
         if (err) {
             module.exports.exitLog(err, 1);
         }
+    },
+
+    handleGitErrors: function(code) {
+        if (code !== 0) {
+            module.exports.exitLog('Git died.', 1);
+        }
     }
 };

@@ -6,7 +6,7 @@ var program = require('commander'),
     config;
 
 program
-    .option('-f', '--force', 'Whether or not to force push to the remote branch before rebasing')
+    .option('-f, --force', 'Whether or not to force push to the remote branch before rebasing')
     .parse(process.argv);
 
 if (!program.args.length) {
@@ -18,6 +18,7 @@ function tryConfig(hasConfigCb) {
         config = require(utils.getConfigDir() + '/.git-lander-config.json');
     } catch(e) {
         promptConfig();
+        return;
     }
 
     hasConfigCb();
@@ -58,12 +59,90 @@ function checkoutHead(head, base) {
 }
 
 function pullHead(head, base, code) {
-    if (code !== 0) {
-        utils.exitLog('Git died.', 1);
+    utils.handleGitErrors(code);
+
+    var pull = spawn('git', [ 'pull', config.remote, head ], {
+        stdio: 'inherit'
+    });
+
+    pull.on('close', rebase.bind(null, head, base));
+}
+
+function rebase(head, base, code) {
+    utils.handleGitErrors(code);
+
+    var rebase = spawn('git', [ 'rebase', '-i', base ], {
+        stdio: 'inherit'
+    });
+
+    rebase.on('close', getLastCommit.bind(null, head, base));
+}
+
+function getLastCommit(head, base, code) {
+    utils.handleGitErrors(code);
+
+    var log = spawn('git', [ 'log', '-1', '--pretty=%B' ], {
+        stdio: 'pipe'
+    });
+
+    log.stdout.on('data', amendCommit.bind(null, head, base));
+    log.on('close', utils.handleGitErrors);
+}
+
+function amendCommit(head, base, data) {
+    if (!data) {
+        utils.exitLog('No commit found.', 1);
     }
 
-    var pull = spawn('git', [ 'pull', config.origin, head ], {
+    var message = data + '\n[close #' + program.args[0] + ']';
+
+    var amend = spawn('git', ['commit', '--amend', '-m', message ], {
         stdio: 'inherit'
+    });
+
+    amend.on('close', push.bind(null, head, base));
+}
+
+function push(head, base, code) {
+    utils.handleGitErrors(code);
+
+    var args = [ 'push', config.remote, head ];
+
+    console.log(program);
+
+    if (program.force) {
+        utils.log('Force pushing to branch ' + head + '.');
+        args.push('-f');
+    }
+
+    var push = spawn('git', args, {
+        stdio: 'inherit'
+    });
+
+    push.on('close', merge.bind(null, head, base));
+}
+
+function merge(head, base, code) {
+    utils.handleGitErrors(code);
+
+    var checkout = spawn('git', [ 'checkout', base ], {
+        stdio: 'inherit'
+    });
+
+    checkout.on('close', function(code) {
+        utils.handleGitErrors(code);
+        spawn('git', [ 'merge', head, '--ff-only' ], {
+            stdio: 'inherit'
+        }).on('close', pushBase.bind(null, head, base));
+    });
+}
+
+function pushBase(head, base, code) {
+    utils.handleGitErrors(code);
+
+    spawn('git', [ 'push', config.remote, base ]).on('close', function(code) {
+        utils.handleGitErrors(code);
+        utils.log('Successfully landed pull request #' + program.args[0]);
     });
 }
 
