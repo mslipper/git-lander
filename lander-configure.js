@@ -16,14 +16,12 @@ function writeConfig(res) {
             '~/.git-lander-config. Please re-run this command.', 0));
 }
 
-module.exports = function() {
-    prompt.start();
+prompt.start();
 
-    prompt.get(prompts, function(err, res) {
-        if (err) {
-            utils.exitLog(err.message, 1);
-        }
+prompt.get(prompts, function(err, res) {
+    if (err) {
+        utils.exitLog(err.message, 1);
+    }
 
-        writeConfig(res);
-    });
-};
+    writeConfig(res);
+});

@@ -17,5 +17,11 @@ module.exports = {
         }
 
         process.exit(code);
+    },
+
+    handleCbErrors: function(err) {
+        if (err) {
+            module.exports.exitLog(err, 1);
+        }
     }
 };

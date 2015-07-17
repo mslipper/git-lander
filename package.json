@@ -2,7 +2,7 @@
   "name": "git-lander",
   "version": "1.0.0",
   "description": "A CLI tool that makes merging GitHub pull requests without merge commits easy.",
-  "main": "index.js",
+  "main": "lander.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -15,8 +15,5 @@
     "prompt": "^0.2.14",
     "yargs": "^3.15.0",
     "yesno": "0.0.1"
-  },
-  "devDependencies": {
-    "github-api": "^0.10.6"
   }
 }
