@@ -19,8 +19,6 @@ function tryConfig(hasConfigCb) {
         promptConfig();
     }
 
-    console.log(config);
-
     hasConfigCb();
 }
 
@@ -55,14 +53,26 @@ function getGithubData() {
     });
 
     var user = github.getUser(),
-        repo = github.getRepo(user, config.repoName),
         id = program.args[0];
 
-    repo.getPull(id, didGetPullRequest)
+    function didGetUser(err, res) {
+        utils.handleCbErrors(err);
+
+        var repo = github.getRepo(res.login, config.repoName);
+        repo.getPull(id, didGetPull);
+    }
+
+    function didGetPull(err, res) {
+        utils.handleCbErrors(err);
+
+        console.log('hi', res);
+    }
+
+    user.show(null, didGetUser);
 }
 
 function didGetPullRequest(err, res) {
     console.log(err, res);
 }
 
-tryConfig(getGithubData());
+tryConfig(getGithubData);
