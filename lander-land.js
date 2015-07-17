@@ -62,7 +62,7 @@ function pullHead(head, base, code) {
         utils.exitLog('Git died.', 1);
     }
 
-    var pull = spawn('git', [ 'pull' ], {
+    var pull = spawn('git', [ 'pull', config.origin, head ], {
         stdio: 'inherit'
     });
 }
