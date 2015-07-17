@@ -1,5 +1,6 @@
 var program = require('commander'),
     prompt = require('prompt'),
+    spawn = require('child_process').spawn,
     Github = require('github-api'),
     utils = require('./utils'),
     config;
@@ -46,6 +47,14 @@ function didPromptConfig(err, res) {
     }
 }
 
+function startMerge(head, base) {
+    utils.log('Checking out head branch ' + head + '.');
+
+    var checkout = spawn('git', [ 'checkout', head ], {
+        stdio: 'inherit'
+    });
+}
+
 function getGithubData() {
     var github = new Github({
         token: config.token,
@@ -65,14 +74,10 @@ function getGithubData() {
     function didGetPull(err, res) {
         utils.handleCbErrors(err);
 
-        console.log('hi', res);
+        startMerge(res.head.ref, res.base.ref);
     }
 
     user.show(null, didGetUser);
-}
-
-function didGetPullRequest(err, res) {
-    console.log(err, res);
 }
 
 tryConfig(getGithubData);
