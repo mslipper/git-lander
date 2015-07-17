@@ -47,10 +47,22 @@ function didPromptConfig(err, res) {
     }
 }
 
-function startMerge(head, base) {
+function checkoutHead(head, base) {
     utils.log('Checking out head branch ' + head + '.');
 
     var checkout = spawn('git', [ 'checkout', head ], {
+        stdio: 'inherit'
+    });
+
+    checkout.on('close', pullHead.bind(null, head, base));
+}
+
+function pullHead(head, base, code) {
+    if (code !== 0) {
+        utils.exitLog('Git died.', 1);
+    }
+
+    var pull = spawn('git', [ 'pull' ], {
         stdio: 'inherit'
     });
 }
@@ -74,7 +86,7 @@ function getGithubData() {
     function didGetPull(err, res) {
         utils.handleCbErrors(err);
 
-        startMerge(res.head.ref, res.base.ref);
+        checkoutHead(res.head.ref, res.base.ref);
     }
 
     user.show(null, didGetUser);
