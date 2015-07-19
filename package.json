@@ -3,6 +3,10 @@
   "version": "1.0.0",
   "description": "A CLI tool that makes merging GitHub pull requests without merge commits easy.",
   "main": "lander.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mslipper/git-lander.git"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
