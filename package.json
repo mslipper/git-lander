@@ -3,7 +3,7 @@
     "lander": "./lander.js"
   },
   "name": "git-lander",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "A CLI tool that makes merging GitHub pull requests without merge commits easy.",
   "main": "lander.js",
   "repository": {
