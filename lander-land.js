@@ -60,6 +60,16 @@ function callNextCommand(next, code) {
     next();
 }
 
+function fetchAll(done) {
+    utils.log('Fetching all branches.');
+
+    var fetch = spawn('git', [ 'fetch', '--all' ], {
+        stdio: 'inherit'
+    });
+
+    fetch.on('close', callNextCommand.bind(null, done));
+}
+
 function checkout(branch, done) {
     utils.log('Checking out branch ' + branch + '.');
 
@@ -300,7 +310,7 @@ function land(err, res) {
         utils.log('Successfully merged PR #' + program.args[0] + '.');
     }
 
-    checkoutBase();
+    fetchAll(checkoutBase);
 }
 
 function getGithubData() {
