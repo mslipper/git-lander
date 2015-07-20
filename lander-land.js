@@ -8,8 +8,9 @@ var program = require('commander'),
     base;
 
 program
-    .option('-f, --force', 'Whether or not to force push to the remote branch before rebasing')
-    .option('-a, --amend', 'Whether or not to amend the commit with the pull request number')
+    .option('-f, --force', 'Force push to the remote branch before rebasing')
+    .option('-a, --amend', 'Amend the commit with the pull request number')
+    .option('-d, --delete', 'Delete the pull request branch when done')
     .parse(process.argv);
 
 if (!program.args.length) {
@@ -133,12 +134,55 @@ function merge(branch, done) {
     merge.on('close', callNextCommand.bind(null, done));
 }
 
-function rebase(branch, done) {
-    var rebase = spawn('git', [ 'rebase', '-i', branch ], {
+function rebase(branch, interactive, done) {
+    var args = [ 'rebase', branch ];
+
+    if (interactive) {
+        args.splice(1, 0, '-i');
+    }
+
+    var rebase = spawn('git', args, {
         stdio: 'inherit'
     });
 
     rebase.on('close', callNextCommand.bind(null, done));
+}
+
+function deleteBranch(branch, done) {
+    var del = spawn('git', [ 'branch', '-d', branch ], {
+        stdio: 'inherit'
+    });
+
+    del.on('close', callNextCommand.bind(null, done));
+}
+
+function countCommitsAhead(base, head, done) {
+    var log = spawn('git', [ 'log', base + '..' + head, '--pretty=%H'], {
+        stdio: 'pipe'
+    });
+
+    var commitsAhead = 0;
+
+    log.stdout.on('data', function(commits) {
+        if (commits) {
+            /**
+             * Remove empty lines.
+             */
+            commitsAhead += commits.toString().split('\n').reduce(function(prev, curr) {
+                if (curr.length === 40) {
+                    return prev + 1;
+                } else {
+                    return prev;
+                }
+            }, 0);
+        }
+    });
+
+    function doneWrap(code) {
+        done(commitsAhead, code);
+    }
+
+    log.on('close', callNextCommand.bind(null, doneWrap));
 }
 
 function land(err, res) {
@@ -164,18 +208,59 @@ function land(err, res) {
     }
 
     function pullHead() {
-        pull(config.remote, head, startRebase);
+        pull(config.remote, head, maybeStartRebase);
     }
 
-    function startRebase() {
-        rebase(base, maybeAmend);
+    function maybeStartRebase() {
+        countCommitsAhead(base, head, function(ahead) {
+            if (ahead === 1) {
+                promptRebase();
+            } else {
+                startInteractiveRebase();
+            }
+        });
+    }
+
+    function promptRebase() {
+        prompt.start();
+
+        prompt.get([{
+            name: 'shouldRebase',
+            description: 'This pull request is only 1 commit ahead of ' +
+                base + '. You don\'t need to rebase this branch. Do you want ' +
+                'to do so anyway?',
+            pattern: utils.YESNO_REGEX,
+            defaut: 'no'
+        }], didPromptRebase);
+
+        function didPromptRebase(err, res) {
+            if (err) {
+                utils.err(err.message);
+                promptRebase();
+                return;
+            }
+
+            if (res.shouldRebase.match(utils.YES_REGEX)) {
+                startInteractiveRebase();
+            } else {
+                startNormalRebase();
+            }
+        }
+    }
+
+    function startNormalRebase() {
+        rebase(base, false, maybeAmend);
+    }
+
+    function startInteractiveRebase() {
+        rebase(base, true, maybeAmend);
     }
 
     function maybeAmend() {
         if (program.amend) {
             performAmend();
         } else {
-            push(config.remote, head, program.force, ffMerge);
+            maybeForcePush();
         }
     }
 
@@ -183,8 +268,12 @@ function land(err, res) {
         getLastCommitMessage(function(message) {
             message += '\n[close #' + program.args[0] + ']';
 
-            amendLastCommitMessage(message, ffMerge);
+            amendLastCommitMessage(message, maybeForcePush);
         });
+    }
+
+    function maybeForcePush() {
+        push(config.remote, head, program.force, ffMerge)
     }
 
     function ffMerge() {
@@ -192,7 +281,19 @@ function land(err, res) {
     }
 
     function pushBase() {
-        push(config.remote, base, false, success);
+        push(config.remote, base, false, maybeDelete);
+    }
+
+    function maybeDelete() {
+        if (program.delete) {
+            deleteBranch(head, pushDeleted);
+        } else {
+            success();
+        }
+    }
+
+    function pushDeleted() {
+        push(config.remote, ':' + head, false, success);
     }
 
     function success() {

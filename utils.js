@@ -16,11 +16,10 @@ module.exports = {
     exitLog: function(message, code) {
         if (code === 0) {
             log(message);
+            process.exit(0);
         } else {
-            err(message);
+            throw new Error(message);
         }
-
-        process.exit(code);
     },
 
     handleCbErrors: function(err) {
