@@ -276,7 +276,7 @@ function land(err, res) {
 
     function performAmend() {
         getLastCommitMessage(function(message) {
-            message += '\n[close #' + program.args[0] + ']';
+            message += '\nPR: #' + program.args[0];
 
             amendLastCommitMessage(message, maybeForcePush);
         });
