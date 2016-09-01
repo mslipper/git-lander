@@ -7,6 +7,6 @@ usage:
 $ npm i -g git-lander
 $ lander configure # get a new github access token
 
-# start landing PRs with purple sizzurp (leave out the hash tag on the number)
+# start landing PRs
 $ lander land 26 -af
 ```
